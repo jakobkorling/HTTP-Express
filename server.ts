@@ -2,43 +2,89 @@ import express from "express";
 
 const app = express();
 app.use(express.json());
+
 const PORT = 3000;
-//WELCOME expected status code 200 OK
-app.get("/", (req, res) => {
-  res.send("Welcome to my photography website!");
+
+type Party = {
+  id: number;
+  name: string;
+  leader: string;
+  seats: number;
+};
+
+type PartyParams = {
+  id: string;
+};
+
+let parties: Party[] = [
+  { id: 1, name: "Socialdemokraterna", leader: "Magdalena Andersson", seats: 107},
+  { id: 2, name: "Moderaterna", leader: "Ulf Kristersson", seats: 50},
+]
+
+app.get("/parties", (req, res) => {
+  res.json(parties);
 });
-//PORTFOLIO expected status code 200 OK
-app.get("/portfolio", (req, res) => {
-  const options = {
-    About: "My photography journey",
-    Categories: {
-      Nature: ["Karlskrona", "Åre", "Göteborg"],
-      Family: ["Karlsson", "Svensson", "Olsson"],
-      Events: ["Concerts", "Market", "Sports events"],
-      Weddings: ["Julia & Jonas", "Anders & Åsa", "Pelle & Lisa", "Olle & Felicia"],
-    },
-    lastUpdated: new Date().toISOString().split("T")[0],
+
+app.post("/parties", (req, res) => {
+  const { name, leader, seats } = req.body;
+
+  if (!name || !leader) {
+    return res.status(400).json({
+      message: "Name and leader are required",
+    });
+  }
+
+  const newParty: Party = {
+    id: parties.length + 1,
+    name,
+    leader,
+    seats,
   };
-  res.json(options);
+
+  parties.push(newParty);
+
+  res.json({
+    message: "New party added",
+    party: newParty,
+  });
 });
-//ABOUT expected status code 200 OK
-app.get("/about", (req, res) => {
-  const about = {
-      title: "About me",
-      description: "My name is Jakob and I've been a photographer for 10 years!",
-      passion: "I love to capture moments",
-      contact: "Send an email to book a photoshoot.",
-  };
-  res.json(about);
+
+app.put("/parties/:id", (req, res) => {
+  const id = Number(req.params.id);
+  const party = parties.find((party) => party.id === id);
+
+  if (!party) {
+    return res.status(404).json({
+      message: "Party not found!",
+    });
+  }
+
+  const { name, leader, seats } = req.body;
+  if (name !== undefined) party.name = name;
+  if (leader !== undefined) party.leader = leader;
+  if (seats !== undefined) party.seats = seats;
+
+  res.json(party);
 });
-//CONTACT expected status code 200 OK
-// res.send because this route only sends a text message and does not need json
-app.get("/contact", (req, res) => {
-  res.send("Send an email to book a photoshoot!");
+
+app.delete("/parties/:id", (req, res) => {
+  const id = Number(req.params.id);
+  const index = parties.findIndex((party) => party.id === id);
+
+  if (index === -1) {
+    return res.status(404).json({
+      message: "Party not found!",
+    });
+  }
+
+  parties.splice(index, 1);
+  res.json({
+    message: "Party deleted!",
+  });
 });
+
+
 
 app.listen(PORT, () => {
   console.log(`Server is running on port: ${PORT}`);
 });
-
-// A route that does not exist will get status code "404 Not found"
